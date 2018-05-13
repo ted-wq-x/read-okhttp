@@ -17,6 +17,8 @@ package okhttp3.internal.publicsuffix;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import okhttp3.OkHttpClient;
@@ -47,7 +49,9 @@ public final class PublicSuffixListGenerator {
   private static final String WILDCARD_CHAR = "*";
 
   public static void main(String... args) throws IOException {
-    OkHttpClient client = new OkHttpClient.Builder().build();
+    OkHttpClient client = new OkHttpClient.Builder()
+            .proxy(new Proxy(Proxy.Type.HTTP,new InetSocketAddress("127.0.0.1",8118)))
+            .build();
     Request request = new Request.Builder()
         .url("https://publicsuffix.org/list/public_suffix_list.dat")
         .build();

@@ -72,6 +72,9 @@ import static java.net.HttpURLConnection.HTTP_PROXY_AUTH;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static okhttp3.internal.Util.closeQuietly;
 
+/**
+ * 包含socket的链接
+ */
 public final class RealConnection extends Http2Connection.Listener implements Connection {
   private static final String NPE_THROW_WITH_NULL = "throw with null exception";
   private static final int MAX_TUNNEL_ATTEMPTS = 21;
@@ -108,6 +111,7 @@ public final class RealConnection extends Http2Connection.Listener implements Co
    */
   public int allocationLimit = 1;
 
+  //TODO 这里很重要,一个socket流有可能有多个链接
   /** Current streams carried by this connection. */
   public final List<Reference<StreamAllocation>> allocations = new ArrayList<>();
 
@@ -150,15 +154,22 @@ public final class RealConnection extends Http2Connection.Listener implements Co
 
     while (true) {
       try {
+        //----------------------------------
         if (route.requiresTunnel()) {
+          //链接,需要使用代理
           connectTunnel(connectTimeout, readTimeout, writeTimeout, call, eventListener);
           if (rawSocket == null) {
             // We were unable to connect the tunnel but properly closed down our resources.
             break;
           }
         } else {
+          //链接socket
           connectSocket(connectTimeout, readTimeout, call, eventListener);
         }
+
+        //----------------------------------
+
+
         establishProtocol(connectionSpecSelector, pingIntervalMillis, call, eventListener);
         eventListener.connectEnd(call, route.socketAddress(), route.proxy(), protocol);
         break;
@@ -210,12 +221,14 @@ public final class RealConnection extends Http2Connection.Listener implements Co
     HttpUrl url = tunnelRequest.url();
     for (int i = 0; i < MAX_TUNNEL_ATTEMPTS; i++) {
       connectSocket(connectTimeout, readTimeout, call, eventListener);
+      //测试代理是不是正常的
       tunnelRequest = createTunnel(readTimeout, writeTimeout, tunnelRequest, url);
 
       if (tunnelRequest == null) break; // Tunnel successfully created.
 
       // The proxy decided to close the connection after an auth challenge. We need to create a new
       // connection, but this time with the auth credentials.
+      // 不正常的话就关闭socket
       closeQuietly(rawSocket);
       rawSocket = null;
       sink = null;
@@ -237,6 +250,7 @@ public final class RealConnection extends Http2Connection.Listener implements Co
     eventListener.connectStart(call, route.socketAddress(), proxy);
     rawSocket.setSoTimeout(readTimeout);
     try {
+      //connect
       Platform.get().connectSocket(rawSocket, route.socketAddress(), connectTimeout);
     } catch (ConnectException e) {
       ConnectException ce = new ConnectException("Failed to connect to " + route.socketAddress());
@@ -249,6 +263,7 @@ public final class RealConnection extends Http2Connection.Listener implements Co
     // https://github.com/square/okhttp/issues/3245
     // https://android-review.googlesource.com/#/c/271775/
     try {
+      //读取返回到buffer
       source = Okio.buffer(Okio.source(rawSocket));
       sink = Okio.buffer(Okio.sink(rawSocket));
     } catch (NullPointerException npe) {

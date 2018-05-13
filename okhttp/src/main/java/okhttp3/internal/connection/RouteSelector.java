@@ -39,6 +39,7 @@ import okhttp3.internal.Util;
  */
 public final class RouteSelector {
   private final Address address;
+  // 错误路由的类名单
   private final RouteDatabase routeDatabase;
   private final Call call;
   private final EventListener eventListener;

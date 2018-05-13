@@ -263,6 +263,7 @@ public final class StreamAllocation {
       reportedAcquired = true;
 
       // Pool the connection.
+      //将socket放到池子里
       Internal.instance.put(connectionPool, result);
 
       // If another multiplexed connection to the same address was created concurrently, then

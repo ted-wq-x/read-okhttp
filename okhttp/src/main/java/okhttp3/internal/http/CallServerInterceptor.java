@@ -47,17 +47,22 @@ public final class CallServerInterceptor implements Interceptor {
     long sentRequestMillis = System.currentTimeMillis();
 
     realChain.eventListener().requestHeadersStart(realChain.call());
+    //将请求头写到ｂｕｆｆｅｒ中（注意这里需要看方法注释了解具体情况）
     httpCodec.writeRequestHeaders(request);
     realChain.eventListener().requestHeadersEnd(realChain.call(), request);
 
     Response.Builder responseBuilder = null;
+
+    //处理请求体，对于ｈｅａｄ和非ｇｅｔ请求使用
     if (HttpMethod.permitsRequestBody(request.method()) && request.body() != null) {
       // If there's a "Expect: 100-continue" header on the request, wait for a "HTTP/1.1 100
       // Continue" response before transmitting the request body. If we don't get that, return
       // what we did get (such as a 4xx response) without ever transmitting the request body.
       if ("100-continue".equalsIgnoreCase(request.header("Expect"))) {
+        //讲ｂｕｆｆｅｒ刷出到底层ｓｏｃｋｅｔ
         httpCodec.flushRequest();
         realChain.eventListener().responseHeadersStart(realChain.call());
+        //读取响应头
         responseBuilder = httpCodec.readResponseHeaders(true);
       }
 
@@ -81,13 +86,16 @@ public final class CallServerInterceptor implements Interceptor {
       }
     }
 
+    //和上面的flushRequest类似
     httpCodec.finishRequest();
 
+    //这个不多说
     if (responseBuilder == null) {
       realChain.eventListener().responseHeadersStart(realChain.call());
       responseBuilder = httpCodec.readResponseHeaders(false);
     }
 
+    //下面就是读取响应
     Response response = responseBuilder
         .request(request)
         .handshake(streamAllocation.connection().handshake())

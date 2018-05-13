@@ -65,15 +65,25 @@ final class RealCall implements Call {
     return originalRequest;
   }
 
+
+  /**
+   * 自己调用
+   * @return
+   * @throws IOException
+   */
   @Override public Response execute() throws IOException {
     synchronized (this) {
       if (executed) throw new IllegalStateException("Already Executed");
       executed = true;
     }
     captureCallStackTrace();
+
+    //TODO 实验性的，还没完成
     eventListener.callStart(this);
     try {
+      //添加到双端队列
       client.dispatcher().executed(this);
+      // 关键位置
       Response result = getResponseWithInterceptorChain();
       if (result == null) throw new IOException("Canceled");
       return result;
@@ -141,6 +151,10 @@ final class RealCall implements Call {
       return RealCall.this;
     }
 
+
+    /**
+     * 这个是给异步执行的方法用的
+     */
     @Override protected void execute() {
       boolean signalledCallback = false;
       try {
@@ -180,19 +194,39 @@ final class RealCall implements Call {
     return originalRequest.url().redact();
   }
 
+
+  /**
+   * TODO 比较关键的拦截器处理位置
+   * @return
+   * @throws IOException
+   */
   Response getResponseWithInterceptorChain() throws IOException {
     // Build a full stack of interceptors.
     List<Interceptor> interceptors = new ArrayList<>();
+
+    // 自定义添加的拦截器
     interceptors.addAll(client.interceptors());
+
+    //错误重试的拦截器，在第二位，才是合理的
     interceptors.add(retryAndFollowUpInterceptor);
+
+    //做一些额外的工作，如header，gzip，cookie的处理
     interceptors.add(new BridgeInterceptor(client.cookieJar()));
+
+    //缓存拦截器，拦截请求和响应
     interceptors.add(new CacheInterceptor(client.internalCache()));
+
+    //打开一个链接
     interceptors.add(new ConnectInterceptor(client));
     if (!forWebSocket) {
+      //自定义的网络拦截器(其实就是一个普通的拦截器,只是位置处于执行请求拦截器的上一层)
       interceptors.addAll(client.networkInterceptors());
     }
+
+    //最后一个拦截器,执行真的请求，但是由于不同的协议处理方式是不一样的，所以使用HttpCodec进行封装
     interceptors.add(new CallServerInterceptor(forWebSocket));
 
+    // 构建连接器链
     Interceptor.Chain chain = new RealInterceptorChain(interceptors, null, null, null, 0,
         originalRequest, this, eventListener, client.connectTimeoutMillis(),
         client.readTimeoutMillis(), client.writeTimeoutMillis());

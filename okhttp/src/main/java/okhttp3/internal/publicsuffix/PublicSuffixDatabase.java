@@ -34,6 +34,7 @@ import static okhttp3.internal.Util.closeQuietly;
  * <a href="https://publicsuffix.org/">publicsuffix.org</a>.
  */
 public final class PublicSuffixDatabase {
+
   public static final String PUBLIC_SUFFIX_RESOURCE = "publicsuffixes.gz";
 
   private static final byte[] WILDCARD_LABEL = new byte[]{'*'};
@@ -107,9 +108,11 @@ public final class PublicSuffixDatabase {
 
   private String[] findMatchingRule(String[] domainLabels) {
     if (!listRead.get() && listRead.compareAndSet(false, true)) {
+      //读取文件，ｉｏ异常的话，就将当前线程中断
       readTheListUninterruptibly();
     } else {
       try {
+        //ｃｏｕｎｔＤｏｗｎｌａｔｃｈ等待文件准备就绪
         readCompleteLatch.await();
       } catch (InterruptedException ignored) {
       }
@@ -302,6 +305,10 @@ public final class PublicSuffixDatabase {
     }
   }
 
+  /**
+   * 读取压缩包文件
+   * @throws IOException
+   */
   private void readTheList() throws IOException {
     byte[] publicSuffixListBytes;
     byte[] publicSuffixExceptionListBytes;

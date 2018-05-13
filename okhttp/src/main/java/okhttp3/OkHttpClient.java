@@ -132,6 +132,10 @@ public class OkHttpClient implements Cloneable, Call.Factory, WebSocket.Factory 
       ConnectionSpec.MODERN_TLS, ConnectionSpec.CLEARTEXT);
 
   static {
+
+    /*
+      该对象用于讲内部方法暴露给外部
+     */
     Internal.instance = new Internal() {
       @Override public void addLenient(Headers.Builder builder, String line) {
         builder.addLenient(line);

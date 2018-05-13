@@ -38,6 +38,7 @@ public final class RealInterceptorChain implements Interceptor.Chain {
   private final StreamAllocation streamAllocation;
   private final HttpCodec httpCodec;
   private final RealConnection connection;
+  //表示当前遍历的拦截器个数
   private final int index;
   private final Request request;
   private final Call call;
@@ -45,7 +46,7 @@ public final class RealInterceptorChain implements Interceptor.Chain {
   private final int connectTimeout;
   private final int readTimeout;
   private final int writeTimeout;
-  private int calls;
+  private int calls;//表示执行的次数，用于确保只有一个被执行
 
   public RealInterceptorChain(List<Interceptor> interceptors, StreamAllocation streamAllocation,
       HttpCodec httpCodec, RealConnection connection, int index, Request request, Call call,

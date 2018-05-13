@@ -27,6 +27,9 @@ import javax.annotation.Nullable;
 public interface Interceptor {
   Response intercept(Chain chain) throws IOException;
 
+  /**
+   * 拦截器栈,栈顶总是RetryAndFollowUpInterceptor,栈底总是CallServerInterceptor
+   */
   interface Chain {
     Request request();
 

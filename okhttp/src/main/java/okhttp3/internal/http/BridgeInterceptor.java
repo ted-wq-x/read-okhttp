@@ -44,8 +44,12 @@ public final class BridgeInterceptor implements Interceptor {
     this.cookieJar = cookieJar;
   }
 
+  //对与返回的结果，进行Gzip, Header, 以及cookie的处理。
+  // userRequest--->netRequest--->netResponse--->userResponse
   @Override public Response intercept(Chain chain) throws IOException {
     Request userRequest = chain.request();
+
+    //new了一个新的request
     Request.Builder requestBuilder = userRequest.newBuilder();
 
     RequestBody body = userRequest.body();
