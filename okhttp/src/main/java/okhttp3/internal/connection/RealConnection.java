@@ -351,7 +351,11 @@ public final class RealConnection extends Http2Connection.Listener implements Co
           ? Platform.get().getSelectedProtocol(sslSocket)
           : null;
       socket = sslSocket;
+
+      //TODO 精彩的地方
+      //将socket的inPutStream放到buffer中，所以当buffer，flush时，就刷新到通道中了
       source = Okio.buffer(Okio.source(socket));
+      //讲socket的outputstream放到sink中
       sink = Okio.buffer(Okio.sink(socket));
       handshake = unverifiedHandshake;
       protocol = maybeProtocol != null

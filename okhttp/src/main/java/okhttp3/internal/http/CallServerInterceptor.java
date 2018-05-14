@@ -59,7 +59,7 @@ public final class CallServerInterceptor implements Interceptor {
       // Continue" response before transmitting the request body. If we don't get that, return
       // what we did get (such as a 4xx response) without ever transmitting the request body.
       if ("100-continue".equalsIgnoreCase(request.header("Expect"))) {
-        //讲ｂｕｆｆｅｒ刷出到底层ｓｏｃｋｅｔ
+        //将ｂｕｆｆｅｒ刷出到底层ｓｏｃｋｅｔ
         httpCodec.flushRequest();
         realChain.eventListener().responseHeadersStart(realChain.call());
         //读取响应头

@@ -493,6 +493,7 @@ public class OkHttpClient implements Cloneable, Call.Factory, WebSocket.Factory 
       proxyAuthenticator = Authenticator.NONE;
       authenticator = Authenticator.NONE;
       connectionPool = new ConnectionPool();
+      //调用系统的dns
       dns = Dns.SYSTEM;
       followSslRedirects = true;
       followRedirects = true;
