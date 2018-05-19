@@ -71,6 +71,7 @@ public final class ConnectionPool {
                     waitNanos -= (waitMillis * 1000000L);
                     synchronized (ConnectionPool.this) {
                         try {
+                            //睡觉
                             ConnectionPool.this.wait(waitMillis, (int) waitNanos);
                         } catch (InterruptedException ignored) {
                         }

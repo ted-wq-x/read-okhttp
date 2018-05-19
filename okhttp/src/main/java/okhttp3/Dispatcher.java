@@ -37,19 +37,33 @@ import okhttp3.internal.Util;
  * of calls concurrently.
  */
 public final class Dispatcher {
+
+
+  /**
+   * 最大的并发数=64*5
+   */
   private int maxRequests = 64;
+
+  /**
+   * 相同网站的最大并发数
+   */
   private int maxRequestsPerHost = 5;
+
+  //线程空闲的回调
   private @Nullable Runnable idleCallback;
 
   /** Executes calls. Created lazily. */
   private @Nullable ExecutorService executorService;
 
+  //异步等待队列
   /** Ready async calls in the order they'll be run. */
   private final Deque<AsyncCall> readyAsyncCalls = new ArrayDeque<>();
 
+  //异步执行队列
   /** Running asynchronous calls. Includes canceled calls that haven't finished yet. */
   private final Deque<AsyncCall> runningAsyncCalls = new ArrayDeque<>();
 
+  //同步执行队列
   /** Running synchronous calls. Includes canceled calls that haven't finished yet. */
   private final Deque<RealCall> runningSyncCalls = new ArrayDeque<>();
 
@@ -62,6 +76,7 @@ public final class Dispatcher {
 
   public synchronized ExecutorService executorService() {
     if (executorService == null) {
+      //executors的cache线程池
       executorService = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60, TimeUnit.SECONDS,
           new SynchronousQueue<Runnable>(), Util.threadFactory("OkHttp Dispatcher", false));
     }
@@ -153,6 +168,9 @@ public final class Dispatcher {
     }
   }
 
+  /**
+   * 讲将待队列中的call添加到线程池当中
+   */
   private void promoteCalls() {
     if (runningAsyncCalls.size() >= maxRequests) return; // Already running max capacity.
     if (readyAsyncCalls.isEmpty()) return; // No ready calls to promote.
@@ -160,6 +178,7 @@ public final class Dispatcher {
     for (Iterator<AsyncCall> i = readyAsyncCalls.iterator(); i.hasNext(); ) {
       AsyncCall call = i.next();
 
+      //小于单host限制,添加到执行队列,并执行
       if (runningCallsForHost(call) < maxRequestsPerHost) {
         i.remove();
         runningAsyncCalls.add(call);
@@ -180,6 +199,7 @@ public final class Dispatcher {
     return result;
   }
 
+  //同步执行队列
   /** Used by {@code Call#execute} to signal it is in-flight. */
   synchronized void executed(RealCall call) {
     runningSyncCalls.add(call);
@@ -187,14 +207,23 @@ public final class Dispatcher {
 
   /** Used by {@code AsyncCall#run} to signal completion. */
   void finished(AsyncCall call) {
+    //异步队列需要执行promoteCalls
     finished(runningAsyncCalls, call, true);
   }
 
   /** Used by {@code Call#execute} to signal completion. */
   void finished(RealCall call) {
+    //同步请求不需要执行promoteCalls
     finished(runningSyncCalls, call, false);
   }
 
+  /**
+   * 通过finished上的方法可以看出这个方法是在每次请求完成的时候进行清理的
+   * @param calls
+   * @param call
+   * @param promoteCalls
+   * @param <T>
+   */
   private <T> void finished(Deque<T> calls, T call, boolean promoteCalls) {
     int runningCallsCount;
     Runnable idleCallback;
@@ -205,6 +234,7 @@ public final class Dispatcher {
       idleCallback = this.idleCallback;
     }
 
+    //没有运行的任务时的回调
     if (runningCallsCount == 0 && idleCallback != null) {
       idleCallback.run();
     }
